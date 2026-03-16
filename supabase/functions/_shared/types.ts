@@ -17,6 +17,8 @@ export type Archetype = 'the_flame' | 'the_lens' | 'the_bridge' | 'the_edge' | '
 export type DepthPreference = 'light' | 'moderate' | 'full_depth';
 export type FogTileStatus = 'hidden' | 'revealed' | 'dimmed';
 export type StoryAct = 'prologue' | 'act_1' | 'act_2' | 'act_3' | 'clearing' | 'post_season';
+export type NotificationType = 'morning_quest' | 'gentle_nudge' | 'evening_reflection' | 'streak_alert' | 're_engagement' | 'story_beat';
+export type AppleNotificationType = 'SUBSCRIBED' | 'DID_RENEW' | 'DID_FAIL_TO_RENEW' | 'EXPIRED' | 'GRACE_PERIOD_EXPIRED' | 'REFUND' | 'DID_CHANGE_RENEWAL_STATUS';
 
 // Common response wrapper
 export interface ApiResponse<T> {
@@ -157,6 +159,33 @@ export interface SeasonProgress {
   total_quests_completed: number;
   total_fog_tiles_revealed: number;
   days_active: number;
+}
+
+// Crisis event
+export interface CrisisEvent {
+  id: string;
+  user_id: string;
+  crisis_level: CrisisLevel;
+  trigger_text: string;
+  classifier_type: string;
+  confidence: number;
+  resource_shown: boolean;
+  overlay_shown: boolean;
+  needs_review: boolean;
+  alert_sent: boolean;
+  alert_channel: string | null;
+  created_at: string;
+}
+
+// Notification log entry
+export interface NotificationLogEntry {
+  id: string;
+  user_id: string;
+  notification_type: NotificationType;
+  body: string;
+  sent_at: string;
+  delivered: boolean;
+  opened: boolean;
 }
 
 // Narrative beat
