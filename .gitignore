@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+.pnp.*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+.next/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+
+# Misc
+*.tgz
+.turbo/
