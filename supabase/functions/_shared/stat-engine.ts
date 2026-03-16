@@ -59,3 +59,36 @@ export const TIER_BASE_FRAGMENTS: Record<string, number> = {
   blaze: 40,
   inferno: 80,
 };
+
+/**
+ * Calculate stat gain with diminishing returns.
+ * Formula: baseXP * tierMultiplier * resistanceMultiplier * (1 - currentStat/120) * archetypeBonus
+ * The (1 - stat/120) curve means gains slow as you approach 100 but never reach zero.
+ */
+export function calculateStatGain(
+  currentStat: number,
+  tier: string,
+  resistanceMultiplier: number,
+  isPrimaryArchetype: boolean,
+): number {
+  const baseXP = TIER_BASE_XP[tier] ?? 2;
+  const diminishingFactor = Math.max(0.05, 1 - currentStat / 120);
+  const archetypeBonus = isPrimaryArchetype ? 1.15 : 1.0;
+  const raw = baseXP * diminishingFactor * resistanceMultiplier * archetypeBonus;
+  // Cap so stat doesn't exceed 100
+  return Math.min(raw, 100 - currentStat);
+}
+
+/**
+ * Calculate stat decay after days of inactivity in a domain.
+ * No decay for first 7 days. After that, gentle decay of 0.5/day, floor at 10.
+ */
+export function calculateDecay(currentStat: number, daysSinceLastQuest: number): number {
+  if (daysSinceLastQuest <= 7) return 0;
+  const decayDays = daysSinceLastQuest - 7;
+  const maxDecay = Math.max(0, currentStat - 10); // don't go below 10
+  return Math.min(decayDays * 0.5, maxDecay);
+}
+
+// Alias for domain-to-stat mapping
+export const domainToStat = domainToStatColumn;

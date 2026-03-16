@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "test": "deno test supabase/functions/tests/ --allow-env --allow-net --allow-read",
+    "test:watch": "deno test supabase/functions/tests/ --allow-env --allow-net --allow-read --watch",
+    "lint": "deno lint supabase/functions/",
+    "fmt": "deno fmt supabase/functions/",
+    "check": "deno check supabase/functions/_shared/*.ts"
+  }
+}
