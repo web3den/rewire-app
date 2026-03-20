@@ -22,17 +22,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Setup EAS
-        uses: expo/eas-action@v2
-        with:
-          eas-version: latest
-          token: ${{ secrets.EAS_TOKEN }}
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
 
       - name: Build with EAS
         run: eas build --platform ios --profile preview --non-interactive
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
 
-      - name: Notify on completion
+      - name: Build complete
         if: always()
-        run: |
-          echo "Build completed!"
-          echo "Check: https://expo.dev/accounts/hopeatforge/projects/rewire/builds"
+        run: echo "Build triggered! Check https://expo.dev/accounts/hopeatforge/projects/rewire/builds"
