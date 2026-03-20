@@ -5,7 +5,6 @@
   "build": {
     "preview": {
       "ios": {
-        "buildType": "ipa",
         "distribution": "internal"
       },
       "android": {
