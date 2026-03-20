@@ -36,6 +36,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "328e0849-2f19-4a09-8c98-8c16699181f0"
+      }
+    },
+    "owner": "hopeatforge"
   }
 }
