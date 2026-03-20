@@ -1,0 +1,38 @@
+name: EAS Build on Push
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build iOS Preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup EAS
+        uses: expo/eas-action@v2
+        with:
+          eas-version: latest
+          token: ${{ secrets.EAS_TOKEN }}
+
+      - name: Build with EAS
+        run: eas build --platform ios --profile preview --non-interactive
+
+      - name: Notify on completion
+        if: always()
+        run: |
+          echo "Build completed!"
+          echo "Check: https://expo.dev/accounts/hopeatforge/projects/rewire/builds"
