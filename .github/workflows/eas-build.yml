@@ -28,7 +28,7 @@ jobs:
       - name: Build with EAS
         run: eas build --platform ios --profile preview --non-interactive
         env:
-          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+          EXPO_TOKEN: ${{ secrets.EAS_TOKEN }}
 
       - name: Build complete
         if: always()
