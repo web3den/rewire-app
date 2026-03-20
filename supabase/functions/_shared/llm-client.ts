@@ -50,12 +50,12 @@ export function estimateTokens(text: string): number {
 // Guide conversation uses Haiku for cost control
 export const LLM_CONFIGS: Record<string, { primary: LLMConfig; secondary: LLMConfig }> = {
   guide_conversation: {
-    primary: { provider: "anthropic", model: "claude-haiku-4-5-20251001", apiKey: Deno.env.get("ANTHROPIC_API_KEY") ?? "" },
-    secondary: { provider: "openai", model: "gpt-4o-mini", apiKey: Deno.env.get("OPENAI_API_KEY") ?? "" },
+    primary: { provider: "openai", model: "gpt-4o-mini", apiKey: Deno.env.get("OPENAI_API_KEY") ?? "" },
+    secondary: { provider: "anthropic", model: "claude-haiku-4-5-20251001", apiKey: Deno.env.get("ANTHROPIC_API_KEY") ?? "" },
   },
   quest_generation: {
-    primary: { provider: "anthropic", model: "claude-haiku-4-5-20251001", apiKey: Deno.env.get("ANTHROPIC_API_KEY") ?? "" },
-    secondary: { provider: "openai", model: "gpt-4o-mini", apiKey: Deno.env.get("OPENAI_API_KEY") ?? "" },
+    primary: { provider: "openai", model: "gpt-4o-mini", apiKey: Deno.env.get("OPENAI_API_KEY") ?? "" },
+    secondary: { provider: "anthropic", model: "claude-haiku-4-5-20251001", apiKey: Deno.env.get("ANTHROPIC_API_KEY") ?? "" },
   },
   reflection_scoring: {
     primary: { provider: "openai", model: "gpt-4o-mini", apiKey: Deno.env.get("OPENAI_API_KEY") ?? "" },

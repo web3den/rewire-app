@@ -124,9 +124,7 @@ CREATE TABLE user_profiles (
   id              UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name    VARCHAR(50) NOT NULL DEFAULT 'Traveler',
   date_of_birth   DATE NOT NULL,
-  is_minor        BOOLEAN GENERATED ALWAYS AS (
-    EXTRACT(YEAR FROM AGE(date_of_birth)) < 18
-  ) STORED,
+  is_minor        BOOLEAN NOT NULL DEFAULT FALSE,
   depth_preference depth_preference NOT NULL DEFAULT 'moderate',
   rest_mode        BOOLEAN NOT NULL DEFAULT FALSE,
   rest_mode_since  TIMESTAMPTZ,
@@ -355,8 +353,7 @@ CREATE TABLE quest_completions (
 
 CREATE INDEX idx_completions_user ON quest_completions(user_id, completed_at DESC);
 CREATE INDEX idx_completions_user_domain ON quest_completions(user_id, stat_dimension, completed_at DESC);
-CREATE INDEX idx_completions_recent ON quest_completions(user_id, completed_at DESC)
-  WHERE completed_at > NOW() - INTERVAL '14 days';
+CREATE INDEX idx_completions_recent ON quest_completions(user_id, completed_at DESC);
 
 -- ============================================================
 -- §9: WEEKLY CYCLES (streak tracking)
@@ -606,8 +603,7 @@ CREATE TABLE notification_log (
 );
 
 CREATE INDEX idx_notification_log_user ON notification_log(user_id, sent_at DESC);
-CREATE INDEX idx_notification_log_recent ON notification_log(user_id, sent_at DESC)
-  WHERE sent_at > NOW() - INTERVAL '7 days';
+CREATE INDEX idx_notification_log_recent ON notification_log(user_id, sent_at DESC);
 
 -- ============================================================
 -- §15: CRISIS FLAGS (isolated per SEC-006)
@@ -1126,14 +1122,20 @@ ALTER TABLE user_cosmetics ENABLE ROW LEVEL SECURITY;
 -- User policies: users can read/update their own rows
 CREATE POLICY "Users read own profile" ON user_profiles
   FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users insert own profile" ON user_profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users update own profile" ON user_profiles
   FOR UPDATE USING (auth.uid() = id);
 
 CREATE POLICY "Users read own stats" ON user_stats
   FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own stats" ON user_stats
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users read own currencies" ON user_currencies
   FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own currencies" ON user_currencies
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "Users read own transactions" ON currency_transactions
   FOR SELECT USING (auth.uid() = user_id);
