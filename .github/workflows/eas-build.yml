@@ -23,7 +23,7 @@ jobs:
         run: npm ci
 
       - name: Install EAS CLI
-        run: npm install -g eas-cli
+        run: npm install -g eas-cli@latest
 
       - name: Build with EAS
         run: eas build --platform ios --profile preview --non-interactive
