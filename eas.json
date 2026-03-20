@@ -5,10 +5,16 @@
   "build": {
     "preview": {
       "ios": {
-        "simulator": true
+        "buildType": "ipa",
+        "distribution": "internal"
       },
       "android": {
         "buildType": "apk"
+      }
+    },
+    "simulator": {
+      "ios": {
+        "simulator": true
       }
     },
     "production": {
