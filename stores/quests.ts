@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { Quest, QuestAssignment, QuestDomain, CompleteQuestWP6Response } from '@/lib/types';
 import { useAuthStore } from '@/stores/auth';
 import { useUserStore } from '@/stores/user';
+import { maybeFireStreakMilestone } from '@/lib/notifications';
 
 interface QuestState {
   anchor: QuestAssignment | null;
@@ -227,6 +228,11 @@ export const useQuestsStore = create<QuestState>((set, get) => ({
       }
 
       set({ lastCompletionResult: data });
+
+      // WP7: fire streak milestone notification if applicable
+      if (data.streak_days) {
+        maybeFireStreakMilestone(data.streak_days);
+      }
 
       // Refetch quests + user data to sync state
       await Promise.all([get().fetchDailyQuests(), useUserStore.getState().fetchAll()]);

@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { initializeFromScenarios } from '@/lib/archetype-engine';
 import { colors, spacing, typography } from '@/lib/theme';
 import type { QuestDomain, FirstLightData } from '@/lib/types';
+import { requestNotificationPermission, scheduleDailyReminder } from '@/lib/notifications';
 
 const DIRECTION_CARDS: { emoji: string; label: string; sublabel: string; domain: QuestDomain }[] = [
   { emoji: '🏔️', label: 'Something in me', sublabel: 'Spirit / Depth', domain: 'spirit' },
@@ -101,6 +102,29 @@ export default function FirstLightScreen() {
       });
 
       await fetchProfile();
+
+      // WP7: Ask Kael's permission question before navigating
+      await new Promise<void>((resolve) => {
+        Alert.alert(
+          'One last thing',
+          '"Can I remind you? Not every day — only when it feels right. I won\'t push. But sometimes, the fog lifts when you\'re nudged."',
+          [
+            {
+              text: 'Yes, remind me',
+              onPress: async () => {
+                await requestNotificationPermission();
+                await scheduleDailyReminder();
+                resolve();
+              },
+            },
+            {
+              text: 'Not right now',
+              style: 'cancel',
+              onPress: () => resolve(),
+            },
+          ],
+        );
+      });
 
       // Navigate to main app
       router.replace('/(app)/(tabs)/quests');
