@@ -1,8 +1,9 @@
 import { Alert } from 'react-native';
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
-import { Quest, QuestAssignment, QuestDomain } from '@/lib/types';
+import { Quest, QuestAssignment, QuestDomain, CompleteQuestWP6Response } from '@/lib/types';
 import { useAuthStore } from '@/stores/auth';
+import { useUserStore } from '@/stores/user';
 
 interface QuestState {
   anchor: QuestAssignment | null;
@@ -11,17 +12,28 @@ interface QuestState {
   choiceOptions: Quest[];
   loading: boolean;
   refreshesUsed: number;
+  networkError: string | null;
+
+  // Last completion result from WP6 edge function
+  lastCompletionResult: CompleteQuestWP6Response | null;
+
+  // WP5: per-domain skip counts (resets at midnight, in-memory only)
+  skipCountsByDomain: Partial<Record<QuestDomain, number>>;
+  // Domains blocked by anti-cherry-pick rule (3 skips → forced away)
+  blockedDomains: QuestDomain[];
 
   fetchDailyQuests: () => Promise<void>;
+  skipQuest: (assignmentId: string, domain: QuestDomain) => Promise<void>;
   completeQuest: (
     assignmentId: string,
     questId: string,
     domain: QuestDomain,
     reflection?: string,
-  ) => Promise<void>;
+  ) => Promise<CompleteQuestWP6Response | null>;
   refreshChoiceQuests: () => Promise<void>;
   autoAssignDailyQuests: (userId: string, today: string) => Promise<void>;
   selectChoiceQuest: (questId: string) => Promise<void>;
+  clearNetworkError: () => void;
 }
 
 function getTodayDateString(): string {
@@ -39,6 +51,12 @@ export const useQuestsStore = create<QuestState>((set, get) => ({
   choiceOptions: [],
   loading: false,
   refreshesUsed: 0,
+  networkError: null,
+  lastCompletionResult: null,
+  skipCountsByDomain: {},
+  blockedDomains: [],
+
+  clearNetworkError: () => set({ networkError: null }),
 
   fetchDailyQuests: async () => {
     const userId = useAuthStore.getState().session?.user.id;
@@ -80,10 +98,18 @@ export const useQuestsStore = create<QuestState>((set, get) => ({
         choiceOptions = (optionQuests ?? []) as Quest[];
       }
 
-      // If no assignments for today, auto-assign from seed quests
+      // If no assignments for today, call generate-daily-quests edge function
       if (!anchor && !choice && !ember) {
-        await get().autoAssignDailyQuests(userId, today);
-        // Re-fetch after assignment
+        const { error: genError } = await supabase.functions.invoke('generate-daily-quests', {
+          body: { user_id: userId },
+        });
+        if (genError) {
+          console.error('quests/generateDailyQuests:', genError);
+          // Fallback to local assignment
+          await get().autoAssignDailyQuests(userId, today);
+        }
+
+        // Re-fetch after generation
         const { data: newData } = await supabase
           .from('quest_assignments')
           .select('*, quest:quests(*)')
@@ -105,9 +131,63 @@ export const useQuestsStore = create<QuestState>((set, get) => ({
         }
       }
 
-      set({ anchor, choice, ember, choiceOptions });
-    } catch (e) {
+      set({ anchor, choice, ember, choiceOptions, networkError: null });
+    } catch (e: unknown) {
       console.error('quests/fetchDailyQuests:', e);
+      const msg = e instanceof Error ? e.message : 'Network error';
+      set({ networkError: msg });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  // ── WP5: Skip Quest ──────────────────────────────────────────────────────
+  skipQuest: async (assignmentId: string, domain: QuestDomain) => {
+    const userId = useAuthStore.getState().session?.user.id;
+    if (!userId) return;
+
+    try {
+      set({ loading: true });
+
+      // Mark assignment as skipped in DB (no rewards, no penalty)
+      const { error } = await supabase
+        .from('quest_assignments')
+        .update({ status: 'skipped', updated_at: new Date().toISOString() })
+        .eq('id', assignmentId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+
+      // Log skip to quest_choice_history for anti-cherry-pick enforcement
+      await supabase.from('quest_choice_history').insert({
+        user_id: userId,
+        assignment_id: assignmentId,
+        action: 'skipped',
+        domain,
+        skipped_at: new Date().toISOString(),
+      }).then(({ error: histErr }) => {
+        if (histErr) console.warn('quests/skipHistory:', histErr.message);
+      });
+
+      // ── Anti-cherry-pick counter ──────────────────────────────────────
+      const { skipCountsByDomain } = get();
+      const currentCount = skipCountsByDomain[domain] ?? 0;
+      const newCount = currentCount + 1;
+      const updatedCounts = { ...skipCountsByDomain, [domain]: newCount };
+
+      // After 3 skips in the same domain, add it to blocked list
+      let { blockedDomains } = get();
+      if (newCount >= 3 && !blockedDomains.includes(domain)) {
+        blockedDomains = [...blockedDomains, domain];
+      }
+
+      set({ skipCountsByDomain: updatedCounts, blockedDomains });
+
+      // Refetch to update board (skipped quest will show as skipped)
+      await get().fetchDailyQuests();
+    } catch (e) {
+      console.error('quests/skipQuest:', e);
+      Alert.alert('Something went wrong', 'Please try again.');
     } finally {
       set({ loading: false });
     }
@@ -115,76 +195,49 @@ export const useQuestsStore = create<QuestState>((set, get) => ({
 
   completeQuest: async (
     assignmentId: string,
-    questId: string,
-    domain: QuestDomain,
+    _questId: string,
+    _domain: QuestDomain,
     reflection?: string,
-  ) => {
+  ): Promise<CompleteQuestWP6Response | null> => {
     const userId = useAuthStore.getState().session?.user.id;
-    if (!userId) return;
+    if (!userId) return null;
 
     try {
-      set({ loading: true });
+      set({ loading: true, networkError: null });
 
-      // Determine rewards from the relevant assignment's joined quest
-      const { anchor, choice, ember } = get();
-      const allAssignments = [anchor, choice, ember].filter(Boolean) as QuestAssignment[];
-      const assignment = allAssignments.find((a) => a.id === assignmentId);
-      const fragmentsEarned = assignment?.quest?.reward_fragments ?? 10;
-      const energyEarned = assignment?.quest?.reward_energy ?? 0;
-      const fogRevealEarned = assignment?.quest?.reward_fog_reveal ?? 0;
+      // Call WP6 edge function — it handles all DB writes, stat gains, spark awards
+      const { data, error } = await supabase.functions.invoke<CompleteQuestWP6Response>(
+        'complete-quest-wp6',
+        {
+          body: {
+            user_id: userId,
+            assignment_id: assignmentId,
+            completion_type: reflection ? 'reflection' : 'self_report',
+            reflection_text: reflection ?? undefined,
+          },
+        },
+      );
 
-      // Insert completion record
-      const { error: completionError } = await supabase.from('quest_completions').insert({
-        user_id: userId,
-        quest_id: questId,
-        assignment_id: assignmentId,
-        completion_type: reflection ? 'reflection' : 'self_report',
-        completed_at: new Date().toISOString(),
-        reflection_text: reflection ?? null,
-        fragments_earned: fragmentsEarned,
-        energy_earned: energyEarned,
-        fog_reveal_earned: fogRevealEarned,
-        stat_dimension: domain,
-        stat_change: 5,
-        bonus_applied: {},
-      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error ?? 'Quest completion failed');
 
-      if (completionError) throw completionError;
+      // Update local sparks balance immediately
+      if (data.sparks_balance !== undefined) {
+        useUserStore.getState().setSparksBalance(data.sparks_balance);
+      }
 
-      // Mark assignment as completed
-      const { error: assignmentError } = await supabase
-        .from('quest_assignments')
-        .update({ status: 'completed', updated_at: new Date().toISOString() })
-        .eq('id', assignmentId);
+      set({ lastCompletionResult: data });
 
-      if (assignmentError) throw assignmentError;
+      // Refetch quests + user data to sync state
+      await Promise.all([get().fetchDailyQuests(), useUserStore.getState().fetchAll()]);
 
-      // Fetch current currencies and award rewards
-      const { data: currencyData, error: currencyFetchError } = await supabase
-        .from('user_currencies')
-        .select('fragments, energy, fog_light')
-        .eq('user_id', userId)
-        .single();
-
-      if (currencyFetchError) throw currencyFetchError;
-
-      const { error: currencyUpdateError } = await supabase
-        .from('user_currencies')
-        .update({
-          fragments: (currencyData.fragments ?? 0) + fragmentsEarned,
-          energy: (currencyData.energy ?? 0) + energyEarned,
-          fog_light: (currencyData.fog_light ?? 0) + fogRevealEarned,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId);
-
-      if (currencyUpdateError) throw currencyUpdateError;
-
-      // Refetch to sync state
-      await get().fetchDailyQuests();
-    } catch (e) {
+      return data;
+    } catch (e: unknown) {
       console.error('quests/completeQuest:', e);
-      Alert.alert('Something went wrong', 'Please try again.');
+      const msg = e instanceof Error ? e.message : 'Network error';
+      set({ networkError: msg });
+      Alert.alert('Could not complete quest', msg + '\n\nPlease try again.');
+      return null;
     } finally {
       set({ loading: false });
     }
@@ -274,17 +327,35 @@ export const useQuestsStore = create<QuestState>((set, get) => ({
     try {
       set({ loading: true });
 
-      const { error } = await supabase.functions.invoke('get-daily-quests', {
-        body: { user_id: userId, refresh_choice: true },
+      // Check spark balance before invoking (cost: 1 spark after first free refresh)
+      const sparks = useUserStore.getState().sparks;
+      const refreshesUsed = get().refreshesUsed;
+      if (refreshesUsed > 0 && (sparks?.sparks ?? 0) < 1) {
+        Alert.alert('Not enough Sparks', 'You need 1 Spark to refresh your options.');
+        set({ loading: false });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('refresh-choice-quests', {
+        body: { user_id: userId },
       });
 
       if (error) throw error;
+      if (data && !data.success) {
+        throw new Error(data.error ?? 'Refresh failed');
+      }
+
+      // Update spark balance if cost was applied
+      if (data?.sparks_available !== undefined) {
+        useUserStore.getState().setSparksBalance(data.sparks_available);
+      }
 
       set((state) => ({ refreshesUsed: state.refreshesUsed + 1 }));
       await get().fetchDailyQuests();
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('quests/refreshChoiceQuests:', e);
-      Alert.alert('Something went wrong', 'Please try again.');
+      const msg = e instanceof Error ? e.message : 'Network error';
+      Alert.alert('Could not refresh quests', msg);
     } finally {
       set({ loading: false });
     }

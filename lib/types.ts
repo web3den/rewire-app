@@ -263,3 +263,24 @@ export interface FirstLightData {
 }
 
 export type CheckInResponse = 'doing_alright' | 'managing_needs_change' | 'having_hard_time' | 'just_getting_through';
+
+// ─── WP6: Sparks Economy ───
+export interface UserSparks {
+  user_id: string;
+  sparks: number;
+  daily_total: number;
+  last_earned: string | null;
+  updated_at: string;
+}
+
+export interface CompleteQuestWP6Response {
+  success: boolean;
+  quest_title?: string;
+  stat_gains?: Record<string, number>;
+  fragments_earned?: number;
+  sparks_earned?: number;
+  sparks_balance?: number;
+  streak_days?: number;
+  kael_response?: string;
+  error?: string;
+}
