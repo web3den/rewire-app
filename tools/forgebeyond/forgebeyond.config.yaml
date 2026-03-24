@@ -1,0 +1,65 @@
+# ForgeBeyond AnalysisEngine Configuration for Rewire App
+# --------------------------------------------------------
+# CI failure analysis engine — ingests GitHub Actions logs,
+# applies rule-based + optional LLM analysis, outputs JSON findings.
+
+project:
+  name: rewire-app
+  repo: forgebeyond/rewire
+  platform: expo-react-native
+
+# Where CI logs are stored (relative to repo root)
+input:
+  log_dir: reports/ci-logs
+  # Supported formats: raw text, GitHub Actions log JSON
+  formats:
+    - github-actions
+    - raw-text
+
+# Where analysis reports go
+output:
+  report_dir: reports
+  report_prefix: ci-analysis
+  format: json
+
+# Rule-based analysis (applied before LLM)
+rules:
+  enabled: true
+  rule_dir: tools/forgebeyond/rules
+  # Rule categories to load
+  categories:
+    - build-errors
+    - test-failures
+    - dependency-issues
+    - expo-specific
+    - typescript-errors
+
+# LLM-powered analysis (for ambiguous failures)
+llm:
+  enabled: false  # Enable when API key is configured
+  provider: openai  # openai | anthropic
+  model: gpt-4o-mini
+  # Secret name in GitHub Actions (not the key itself)
+  api_key_env: FORGEBEYOND_LLM_API_KEY
+  max_tokens: 2000
+  temperature: 0.1
+  # Only invoke LLM when rule-based analysis confidence < threshold
+  confidence_threshold: 0.6
+
+# Analysis settings
+analysis:
+  # Maximum log lines to process (prevents runaway on huge logs)
+  max_log_lines: 5000
+  # Extract and analyze only failure-relevant sections
+  smart_extract: true
+  # Include surrounding context lines for each error
+  context_lines: 5
+  # Severity levels: critical, high, medium, low, info
+  min_severity: low
+
+# Integration hooks (for Router/Sentinel agent system)
+hooks:
+  # Webhook URL for posting findings (optional)
+  webhook_url: ""
+  # Exit code behavior: 'always-zero' for CI reporting, 'match-severity' to fail on critical
+  exit_code: always-zero

@@ -1,0 +1,29 @@
+{
+  "category": "dependency-issues",
+  "rules": [
+    {
+      "id": "DEP001",
+      "name": "Missing dependency",
+      "pattern": "Cannot find module '(?!\\.).*'|Module not found.*node_modules",
+      "severity": "high",
+      "suggestion": "A dependency is missing. Run `npm install` or add the missing package.",
+      "tags": ["npm", "missing"]
+    },
+    {
+      "id": "DEP002",
+      "name": "Version conflict",
+      "pattern": "ERESOLVE|peer dep.*conflict|Could not resolve dependency",
+      "severity": "high",
+      "suggestion": "Dependency version conflict. Check package.json for incompatible version ranges.",
+      "tags": ["npm", "version"]
+    },
+    {
+      "id": "DEP003",
+      "name": "Native module link error",
+      "pattern": "undefined is not an object.*NativeModules|TurboModuleRegistry|Native module.*cannot be null",
+      "severity": "critical",
+      "suggestion": "Native module not linked. Run `npx pod-install` (iOS) or rebuild native project.",
+      "tags": ["native", "linking"]
+    }
+  ]
+}

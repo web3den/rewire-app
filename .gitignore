@@ -47,3 +47,6 @@ coverage/
 
 expo-env.d.ts
 # @end expo-cli
+# ForgeBeyond reports (generated)
+reports/ci-analysis-*.json
+reports/ci-logs/

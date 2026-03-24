@@ -1,0 +1,29 @@
+{
+  "category": "expo-specific",
+  "rules": [
+    {
+      "id": "EXPO001",
+      "name": "Expo config error",
+      "pattern": "Error reading.*app\\.json|Invalid.*app\\.config|expo-cli.*config",
+      "severity": "high",
+      "suggestion": "Expo configuration error. Validate app.json/app.config.js syntax and required fields.",
+      "tags": ["expo", "config"]
+    },
+    {
+      "id": "EXPO002",
+      "name": "EAS credentials issue",
+      "pattern": "EXPO_TOKEN.*invalid|credentials.*failed|Unauthorized.*expo",
+      "severity": "critical",
+      "suggestion": "EAS authentication failed. Check that EXPO_TOKEN secret is set and valid in GitHub repo settings.",
+      "tags": ["eas", "auth"]
+    },
+    {
+      "id": "EXPO003",
+      "name": "Expo Router error",
+      "pattern": "expo-router.*error|Unmatched Route|No route named",
+      "severity": "medium",
+      "suggestion": "Expo Router navigation error. Check route file naming and directory structure under app/.",
+      "tags": ["expo-router", "navigation"]
+    }
+  ]
+}

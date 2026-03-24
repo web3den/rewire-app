@@ -1,0 +1,45 @@
+{
+  "category": "test-failures",
+  "rules": [
+    {
+      "id": "TEST001",
+      "name": "Jest test failure",
+      "pattern": "FAIL\\s+.*\\.test\\.|Tests:\\s+\\d+ failed|expect\\(.*\\)\\.to",
+      "severity": "high",
+      "suggestion": "One or more tests failed. Check the test output for assertion details and fix the failing expectations.",
+      "tags": ["jest", "test"]
+    },
+    {
+      "id": "TEST002",
+      "name": "Test timeout",
+      "pattern": "Timeout.*exceeded|exceeded timeout|Async callback was not invoked within",
+      "severity": "medium",
+      "suggestion": "Test timed out — likely an async operation that never resolves. Check for missing await, unresolved promises, or network calls in tests.",
+      "tags": ["jest", "timeout", "async"]
+    },
+    {
+      "id": "TEST003",
+      "name": "Snapshot mismatch",
+      "pattern": "Snapshot.*mismatch|toMatchSnapshot|Received value does not match stored snapshot",
+      "severity": "medium",
+      "suggestion": "Snapshot test failed. If the change is intentional, run `jest --updateSnapshot` to update.",
+      "tags": ["jest", "snapshot"]
+    },
+    {
+      "id": "TEST004",
+      "name": "Import/module error in tests",
+      "pattern": "Cannot find module|SyntaxError.*import|Module not found.*test",
+      "severity": "high",
+      "suggestion": "Module resolution failed in test context. Check jest.config moduleNameMapper, transformIgnorePatterns for react-native packages.",
+      "tags": ["jest", "module", "import"]
+    },
+    {
+      "id": "TEST005",
+      "name": "TypeScript type error in tests",
+      "pattern": "TS\\d{4}:|Type '.*' is not assignable|Property '.*' does not exist",
+      "severity": "medium",
+      "suggestion": "TypeScript type error. Fix the type mismatch or update the type definitions.",
+      "tags": ["typescript", "types"]
+    }
+  ]
+}

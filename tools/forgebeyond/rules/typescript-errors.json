@@ -1,0 +1,21 @@
+{
+  "category": "typescript-errors",
+  "rules": [
+    {
+      "id": "TS001",
+      "name": "TypeScript compilation error",
+      "pattern": "error TS\\d{4}:|tsc.*error|Type error:",
+      "severity": "high",
+      "suggestion": "TypeScript compilation failed. Fix the type errors shown in the log output.",
+      "tags": ["typescript", "compilation"]
+    },
+    {
+      "id": "TS002",
+      "name": "Strict mode violation",
+      "pattern": "Object is possibly 'null'|Object is possibly 'undefined'|not assignable to parameter",
+      "severity": "medium",
+      "suggestion": "TypeScript strict mode violation. Add null checks or type narrowing.",
+      "tags": ["typescript", "strict"]
+    }
+  ]
+}

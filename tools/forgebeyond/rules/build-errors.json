@@ -1,0 +1,45 @@
+{
+  "category": "build-errors",
+  "rules": [
+    {
+      "id": "BUILD001",
+      "name": "Metro bundler crash",
+      "pattern": "error: Metro has encountered an error|BUNDLE\\s+.*failed",
+      "severity": "critical",
+      "suggestion": "Check for syntax errors in recently changed files. Run `npx expo start` locally to reproduce.",
+      "tags": ["metro", "bundler"]
+    },
+    {
+      "id": "BUILD002",
+      "name": "EAS build failure",
+      "pattern": "Build failed|eas build.*error|Error: Build failed",
+      "severity": "critical",
+      "suggestion": "Check EAS build logs at expo.dev. Common causes: missing native dependencies, invalid app.json config.",
+      "tags": ["eas", "build"]
+    },
+    {
+      "id": "BUILD003",
+      "name": "npm install failure",
+      "pattern": "npm ERR!|npm ci.*failed|ERESOLVE|peer dep",
+      "severity": "high",
+      "suggestion": "Dependency resolution issue. Try `npm ci --legacy-peer-deps` or check for conflicting peer dependencies.",
+      "tags": ["npm", "dependencies"]
+    },
+    {
+      "id": "BUILD004",
+      "name": "Out of memory",
+      "pattern": "FATAL ERROR.*heap|JavaScript heap out of memory|ENOMEM",
+      "severity": "critical",
+      "suggestion": "Build ran out of memory. Consider increasing Node memory with NODE_OPTIONS=--max_old_space_size=4096.",
+      "tags": ["memory", "oom"]
+    },
+    {
+      "id": "BUILD005",
+      "name": "Xcode build error",
+      "pattern": "xcodebuild.*error|Build input file cannot be found|Signing.*error",
+      "severity": "high",
+      "suggestion": "iOS native build issue. Check Xcode project settings, provisioning profiles, and pod install status.",
+      "tags": ["xcode", "ios"]
+    }
+  ]
+}
